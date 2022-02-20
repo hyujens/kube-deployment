@@ -23,11 +23,12 @@ This project is to record how to install/deploy kubernetes step by step with ans
 * Docker Engine
 * Mirantis Container Runtime
 ```
-CRI-O due to lightweight and security [5]
+Based on [5], containerd and cri-o are good choices instead of container
+In this project, cri-o will be used for a try
 ```
 
 ## CNI plugin
-calico was chosen
+calico will be chosen
 
 # References
 1. https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
