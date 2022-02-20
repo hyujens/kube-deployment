@@ -1,0 +1,50 @@
+---
+# Ensure ports are open and not blocked by firewall
+# Reference: https://kubernetes.io/docs/reference/ports-and-protocols/
+- hosts: k8s-cluster
+  gather_facts: false
+  tasks:
+    - name: Gather network facts
+      ansible.builtin.setup:
+        gather_subset: '!all,!min,network'
+        filter: "ansible_*_ipv[46]*"
+
+    - name: Gather hardware facts
+      ansible.builtin.setup:
+        gather_subset: '!all,!min,hardware'
+        filter:
+          - "ansible_*total_mb"
+          - "ansible_processor*"
+
+    - name: Gather product facts
+      ansible.builtin.setup:
+        filter: "ansible_product*"
+
+    - name: debug
+      ansible.builtin.debug:
+        var: ansible_facts
+
+    - name: Check hardware requirements
+      ansible.builtin.assert:
+        that:
+          # Official recommends that memory should be at least 2G
+          # However, actual information gathered is not 2048 for only 2G memory installed
+          # Thus, the value is referenced from kubespray
+          - ansible_facts["memtotal_mb"] > 1500
+          - ansible_facts["processor_vcpus"] >= 2
+        msg: memory should be 2G or more and 2 cpu at least
+      delegate_to: localhost
+      run_once: true
+
+    - name: Check if nodes have unique mac address and product uuid
+      ansible.builtin.assert:
+        that:
+          - hostvars['node01'].ansible_default_ipv4.macaddress != hostvars['node02'].ansible_default_ipv4.macaddress
+          - hostvars['node01'].ansible_default_ipv4.macaddress != hostvars['node03'].ansible_default_ipv4.macaddress
+          - hostvars['node02'].ansible_default_ipv4.macaddress != hostvars['node03'].ansible_default_ipv4.macaddress
+          - hostvars['node01'].ansible_product_uuid != hostvars['node02'].ansible_product_uuid
+          - hostvars['node01'].ansible_product_uuid != hostvars['node03'].ansible_product_uuid
+          - hostvars['node02'].ansible_product_uuid != hostvars['node03'].ansible_product_uuid
+      delegate_to: localhost
+      run_once: true
+        
