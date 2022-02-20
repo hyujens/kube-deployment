@@ -1,0 +1,26 @@
+---
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin
+# According to official documentation, disable swap is must in order for kunelete to work properly
+# Ref: How to disable swap
+#   https://github.com/kubernetes-sigs/kubespray/blob/ee882fa462d2f2ec97b3b009908df8e94a798f1d/roles/kubernetes/preinstall/tasks/0010-swapoff.yml
+- hosts: k8s-cluster
+  tasks:
+    - name: Remove swap from /etc/fstab
+      ansible.builtin.mount:
+        name: "{{ item }}"
+        fstype: swap
+        state: absent
+      with_items:
+        - swap
+        - none
+
+    - name: check swap
+      ansible.builtin.command: /sbin/swapon -s
+      register: swapon
+      changed_when: no
+
+    - name: disable swap
+      ansible.builtin.command: /sbin/swapoff -a
+      when:
+        # Being disabled swap won't show anything by executing swapon -s
+        - swapon.stdout
