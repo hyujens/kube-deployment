@@ -1,0 +1,40 @@
+---
+- hosts: k8s-cluster
+  tasks:
+    - name: Installing relevant packages for setting up k8s cluster
+      vars:
+        key_url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        downloaded_key_location: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+      block:
+        - name: Update the apt package index and install packages needed to use the Kubernetes apt repository
+          ansible.builtin.apt:
+            name:
+              - apt-transport-https
+              - ca-certificates
+              - curl
+              - gnupg
+            state: present
+            update_cache: yes
+
+        - name: Download the Google Cloud public signing key
+          ansible.builtin.command: curl -fsSLo {{ downloaded_key_location }} {{ key_url }}
+          register: downloaded_key
+          failed_when: downloaded_key.rc != 0
+
+        - name: Add the Kubernetes apt repository
+          ansible.builtin.shell:
+            cmd: >
+              echo "deb [signed-by={{ downloaded_key_location }}] https://apt.kubernetes.io/ kubernetes-xenial main" |
+              tee /etc/apt/sources.list.d/kubernetes.list
+
+        - name: Update apt package index, install kubelet, kubeadm and kubectl  
+          ansible.builtin.apt:
+            name:
+              - kubelet
+              - kubeadm
+              - kubectl
+            state: present
+            update_cache: yes
+
+        - name: Pin thier version
+          ansible.builtin.command: apt-mark hold kubelet kubeadm kubectl      
