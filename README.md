@@ -37,3 +37,5 @@ calico will be chosen
 4. https://kubernetes.io/docs/setup/production-environment/container-runtimes/
 5. https://thenewstack.io/a-security-comparison-of-docker-cri-o-and-containerd/
 6. https://github.com/kubernetes-sigs/kubespray
+7. https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+8. https://github.com/cri-o/cri-o/blob/main/install.md
