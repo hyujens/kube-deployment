@@ -20,6 +20,14 @@
           echo "deb [signed-by={{ pgp_location }}/{{ crio_pgp }}] {{ crio_download_url }}/stable:/cri-o:/{{ kube_version }}/{{ os }}/ /" >
           /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:{{ kube_version }}.list
 
+    # It seems existed key files cause getting key hung
+    - name: Remove generated keys
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ pgp_location }}/{{ release_pgp }}"
+        - "{{ pgp_location }}/{{ crio_pgp }}"
     - name: Get container release pgp
       ansible.builtin.shell:
         cmd: >
@@ -31,7 +39,7 @@
     - name: Get crio container release pgp
       ansible.builtin.shell:
         cmd: >
-          curl -L {{ crio_download_url }}/stable:/crio:/{{ kube_version }}/{{ os }}/Release.key |
+          curl -L {{ crio_download_url }}/stable:/cri-o:/{{ kube_version }}/{{ os }}/Release.key |
           gpg --dearmor -o {{ pgp_location }}/{{ crio_pgp }}
       register: download_pgp
       failed_when: download_pgp.rc != 0

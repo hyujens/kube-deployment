@@ -4,7 +4,7 @@
     - name: Enable br_netfilter kernel module
       community.general.modprobe:
         name: br_netfilter
-        state: preset
+        state: present
 
     - name: Enable overlay kernel module
       community.general.modprobe:
