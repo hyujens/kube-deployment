@@ -1,0 +1,12 @@
+---
+- hosts: k8s-master
+  tasks:
+    - name: Install the Tigera Calico operator and custom resource definitions
+      ansible.builtin.command: kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
+      register: install_calico
+      failed_when: install_calico.rc != 0
+
+    - name: Install Calico by creating the necessary custom resource.
+      ansible.builtin.command: kubectl create -f https://projectcalico.docs.tigera.io/manifests/custom-resources.yaml
+      register: install_calico
+      failed_when: install_calico.rc != 0

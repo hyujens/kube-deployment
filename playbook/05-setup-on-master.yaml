@@ -1,0 +1,35 @@
+---
+- hosts: k8s-master
+  tasks:
+    - name: Pull required images
+      become: yes
+      ansible.builtin.command: kubeadmin config images pull
+
+    - name: Initialize master node
+      become: yes
+      # --control-plane-endpoint shared point, usually be a load balancer
+      ansible.builtin.command: kubeadm init --pod-network-cidr=10.13.0.0/16
+
+    - name: Get variables
+      ansible.builtin.set_fact:
+        home_dir: "{{ ansible_env.HOME }}"
+        master_user: "{{ hostvars[hostvars['node01']['groups']['k8s-master'][0]].ansible_user }}"
+    - name: create .kube folder
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.kube"
+        state: directory
+
+    - name: Copy admin.conf to .kube
+      become: yes
+      ansible.builtin.copy:
+        remote_src: yes
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ home_dir }}/.kube/config"
+        owner: "{{ master_user }}"
+        group: "{{ master_user }}"
+        mode: '0600'
+
+    - name: Add KUBECONFIG to root's .bashrc
+      become: yes
+      ansible.builtin.shell:
+        cmd: echo export KUBECONFIG=/etc/kubernetes/admin.conf >> /root/.bashrc
