@@ -16,6 +16,31 @@ This project is to record how to install/deploy kubernetes step by step with ans
         1. Enable transparent masquerading
         2. Facilitate VxLAN traffic for communication between k8s pods across the cluster
         ```
+## Flow
+1. Check if each node has unique mac address, product uuid, and hostname
+2. disable swap
+3. Check relevant kernel modules loaded
+    * br_netfilter
+    * overlay
+4. Install kubelet, kubeadm and kubectl
+5. Install container runtime
+6. Initialize master node
+    * enable the kubelet service to start on boot
+    * pull the required images with kubeadmin
+    * execute 'kubeadmin init ...'
+7. On master node, copy /etc/kubernetes/admin.conf to $HOME/.kube or set to KUBECONFIG environment
+8. Install CNI
+9. Join worker nodes
+```
+Join nodes: kubeadm join --token <token> <control-plane-host>:<control-plane-port> --discovery-token-ca-cert-hash sha256:<hash>
+token can get from 'kubeadm token list'
+hash can get by executing:
+    openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | \
+   openssl dgst -sha256 -hex | sed 's/^.* //'
+
+If token expired (24 hours by default), generate it by 'kubeadm token create'
+```
+
 # Choices
 ## container runtime[4]:
 * containerd
@@ -28,7 +53,8 @@ In this project, cri-o will be used for a try
 ```
 
 ## CNI plugin
-calico will be chosen
+calico [9] will be chosen
+If pod network CIDR is not set as 192.168.0.0, download custom-resources.yaml and alter it
 
 # References
 1. https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
@@ -39,3 +65,4 @@ calico will be chosen
 6. https://github.com/kubernetes-sigs/kubespray
 7. https://kubernetes.io/docs/setup/production-environment/container-runtimes/
 8. https://github.com/cri-o/cri-o/blob/main/install.md
+9. https://projectcalico.docs.tigera.io/getting-started/kubernetes/quickstart
