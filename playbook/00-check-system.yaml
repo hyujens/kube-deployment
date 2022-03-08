@@ -47,4 +47,5 @@
           - hostvars['node02'].ansible_product_uuid != hostvars['node03'].ansible_product_uuid
       delegate_to: localhost
       run_once: true
-        
+
+    #TODO rewrite hostname and reboot to take effect
