@@ -1,23 +1,11 @@
 ---
-- hosts: k8s-worker
+- hosts: k8s-master
   tasks:
     - name: Query token for join
-      ansible.builtin.command: kubeadm token list | awk '{print $1}'
+      ansible.builtin.shell:
+        cmd: kubeadm token list | awk '{print $1}'
       register: token_list
-
-    - name: Create a token when not found
-      block:
-        - name: create by kubeadm
-          ansible.builtin.command: kubeadm token create
-
-        - name: Query token again
-          ansible.builtin.command: kubeadm token list | awk '{print $1}'
-          register: token_list
-      when: token_list.stdout == ""
-
-    - name: Get target token
-      ansible.builtin.set_fact:
-        token: "{{ token_list.stdout.split('\n')[1] }}"
+      failed_when: token_list.rc != 0
 
     - name: Get hash value
       ansible.builtin.shell:
@@ -26,11 +14,40 @@
           openssl rsa -pubin -outform der 2>/dev/null |
           openssl dgst -sha256 -hex | sed 's/^.* //'
       register: hash_value
+      failed_when: hash_value.rc != 0
+
+    - name: Set relevant parameters for joining worker nodes
+      ansible.builtin.set_fact:
+        kube_tokens: "{{ token_list.stdout }}"
+        hash_from_master: "{{ hash_value.stdout }}"
+
+    - name: Create a token when not found
+      block:
+        - name: create by kubeadm
+          ansible.builtin.command:
+            cmd: kubeadm token create
+
+        - name: Query token again
+          ansible.builtin.shell:
+            cmd: kubeadm token list | awk '{print $1}'
+          register: token_list
+          failed_when: refresh_token_list.rc != 0
+
+        - name: refresh kube token
+          ansible.builtin.set_fact:
+            kube_tokens: "{{ refresh_token_list.stdout }}"
+      when: kube_tokens == ""
+
+- hosts: k8s-worker
+  tasks:
+    - name: Get target token
+      ansible.builtin.set_fact:
+        token: "{{ hostvars['node01']['kube_tokens'].split('\n')[1] }}"
 
     - name: Join node to k8s cluster
       ansible.builtin.shell:
         cmd: >
           kubeadm join --token {{ token }}
           {{ hostvars[hostvars['node01']['groups']['k8s-master'][0]].ansible_host }}:6443
-          --discovery-token-ca-cert-hash sha256:{{ hash_value.stdout }}
+          --discovery-token-ca-cert-hash sha256:{{ hostvars['node01']['hash_from_master'] }}
         # --control-plane if this node is master node
