@@ -2,12 +2,25 @@
 - hosts: k8s-cluster
   vars:
     os: Debian_11
-    kube_version: '1.23'
     pgp_location: /usr/share/keyrings
     release_pgp: libcontainers-archive-keyring.gpg
     crio_pgp: libcontainers-crio-archive-keyring.gpg
     crio_download_url: 'https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:'
   tasks:
+    - name: Get kubernetes version
+      block:
+        - name: Use kubelet
+          ansible.builtin.command:
+            cmd: kubelet --version
+          register: kubever
+          failed_when:
+            - kubever.rc != 0
+            - not 'Kubernetes ' in kubever.stdout
+        - name: Get version from output
+          ansible.builtin.set_fact:
+            kube_version: "{{ kubever.stdout.split(' ')[1] | shorten_version('kubelet') }}"
+      run_once: true
+
     - name: Add container release to apt
       ansible.builtin.shell:
         cmd: >
