@@ -3,7 +3,7 @@
   tasks:
     - name: Pull required images
       become: yes
-      ansible.builtin.command: kubeadmin config images pull
+      ansible.builtin.command: kubeadm config images pull
 
     - name: Initialize master node
       become: yes
