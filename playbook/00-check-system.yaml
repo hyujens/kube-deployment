@@ -17,7 +17,9 @@
           - "ansible_processor*"
 
     - name: Gather product facts
+      become: true
       ansible.builtin.setup:
+        # product_uuid is read from /sys/class/dmi/id/product_uuid with root priviledge
         filter: "ansible_product*"
 
     - name: debug
@@ -37,14 +39,14 @@
       run_once: true
 
     - name: Check if nodes have unique mac address and product uuid
+      vars:
+        nNodes: "{{ groups['k8s-cluster'] | length }}"
+        macaddrs: "{{ groups['k8s-cluster'] | map('extract', hostvars, ['ansible_default_ipv4', 'macaddress']) }}"
+        productUUIDs: "{{ groups['k8s-cluster'] | map('extract', hostvars, 'ansible_product_uuid') }}"
       ansible.builtin.assert:
         that:
-          - hostvars['node01'].ansible_default_ipv4.macaddress != hostvars['node02'].ansible_default_ipv4.macaddress
-          - hostvars['node01'].ansible_default_ipv4.macaddress != hostvars['node03'].ansible_default_ipv4.macaddress
-          - hostvars['node02'].ansible_default_ipv4.macaddress != hostvars['node03'].ansible_default_ipv4.macaddress
-          - hostvars['node01'].ansible_product_uuid != hostvars['node02'].ansible_product_uuid
-          - hostvars['node01'].ansible_product_uuid != hostvars['node03'].ansible_product_uuid
-          - hostvars['node02'].ansible_product_uuid != hostvars['node03'].ansible_product_uuid
+          - macaddrs | unique | length == nNodes | int
+          - productUUIDs | unique | length == nNodes | int
       delegate_to: localhost
       run_once: true
 
