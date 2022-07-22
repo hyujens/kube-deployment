@@ -8,12 +8,12 @@
     - name: Initialize master node
       become: yes
       # --control-plane-endpoint shared point, usually be a load balancer
-      ansible.builtin.command: kubeadm init --pod-network-cidr=10.13.0.0/16
+      ansible.builtin.command: kubeadm init --pod-network-cidr={{ cidr.range }}
 
     - name: Get variables
       ansible.builtin.set_fact:
         home_dir: "{{ ansible_env.HOME }}"
-        master_user: "{{ hostvars[hostvars['node01']['groups']['k8s-master'][0]].ansible_user }}"
+        master_user: "{{ groups['k8s-master'] | map('extract', hostvars, 'ansible_user') }}"
     - name: create .kube folder
       ansible.builtin.file:
         path: "{{ home_dir }}/.kube"
@@ -25,8 +25,8 @@
         remote_src: yes
         src: /etc/kubernetes/admin.conf
         dest: "{{ home_dir }}/.kube/config"
-        owner: "{{ master_user }}"
-        group: "{{ master_user }}"
+        owner: "{{ master_user[0] }}"
+        group: "{{ master_user[0] }}"
         mode: '0600'
 
     - name: Add KUBECONFIG to root's .bashrc
